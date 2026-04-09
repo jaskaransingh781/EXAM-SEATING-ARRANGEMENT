@@ -116,6 +116,26 @@ input:focus {
   box-shadow: 0 0 0 4px rgba(82, 145, 255, 0.16);
 }
 
+input[type="file"] {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+  background: rgba(82, 145, 255, 0.18);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-right: 12px;
+  transition: background-color 0.2s ease;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: rgba(82, 145, 255, 0.28);
+}
+
 .button {
   border: none;
   border-radius: 14px;

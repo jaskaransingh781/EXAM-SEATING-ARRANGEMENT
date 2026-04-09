@@ -29,6 +29,8 @@ const constraintRoll1 = document.getElementById('constraintRoll1');
 const constraintRoll2 = document.getElementById('constraintRoll2');
 const studentNameInput = document.getElementById('studentNameInput');
 const studentRollInput = document.getElementById('studentRollInput');
+const csvFileInput = document.getElementById('csvFileInput');
+const uploadCsvBtn = document.getElementById('uploadCsvBtn');
 
 const state = {
   currentHallId: 1,
@@ -87,6 +89,84 @@ function updateSummary() {
 
 function normalizeRoll(value) {
   return value.trim().toUpperCase();
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(line => line.trim());
+  const records = [];
+  
+  // Skip header if present
+  let startIndex = 0;
+  if (lines.length > 0 && (lines[0].toLowerCase().includes('name') || lines[0].toLowerCase().includes('roll'))) {
+    startIndex = 1;
+  }
+  
+  for (let i = startIndex; i < lines.length; i += 1) {
+    const parts = lines[i].split(',').map(p => p.trim());
+    if (parts.length >= 2 && parts[0] && parts[1]) {
+      records.push({
+        name: parts[0],
+        rollNumber: parts[1].toUpperCase()
+      });
+    }
+  }
+  
+  return records;
+}
+
+function importStudentsFromCSV(file) {
+  if (!file) {
+    showMessage('Please select a CSV file.', 'warning');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const csv = e.target.result;
+      const records = parseCSV(csv);
+      
+      if (records.length === 0) {
+        showMessage('No valid student records found in CSV.', 'warning');
+        return;
+      }
+      
+      let added = 0;
+      let skipped = 0;
+      
+      records.forEach(record => {
+        if (studentExists(record.rollNumber)) {
+          skipped += 1;
+        } else {
+          state.students.push({
+            name: record.name,
+            rollNumber: record.rollNumber,
+            hallId: -1,
+            seatNumber: -1
+          });
+          added += 1;
+        }
+      });
+      
+      renderStudentTable();
+      updateSummary();
+      csvFileInput.value = '';
+      
+      let message = `Imported ${added} student${added !== 1 ? 's' : ''}`;
+      if (skipped > 0) {
+        message += ` (${skipped} skipped - already exist)`;
+      }
+      showMessage(message, 'success');
+    } catch (error) {
+      showMessage(`Error parsing CSV: ${error.message}`, 'error');
+    }
+  };
+  
+  reader.onerror = function() {
+    showMessage('Error reading file.', 'error');
+  };
+  
+  reader.readAsText(file);
 }
 
 function renderStudentTable() {
@@ -584,6 +664,14 @@ function initialize() {
   saveConstraintBtn.addEventListener('click', addConstraint);
   studentTableBody.addEventListener('click', handleTableActions);
   constraintsList.addEventListener('click', handleConstraintListClick);
+  uploadCsvBtn.addEventListener('click', () => importStudentsFromCSV(csvFileInput.files[0]));
+  csvFileInput.addEventListener('change', () => {
+    if (csvFileInput.files.length > 0) {
+      uploadCsvBtn.classList.add('primary');
+    } else {
+      uploadCsvBtn.classList.remove('primary');
+    }
+  });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !constraintModal.classList.contains('hidden')) {
