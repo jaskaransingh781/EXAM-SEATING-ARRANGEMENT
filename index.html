@@ -15,7 +15,13 @@
       </div>
 
       <section class="panel">
-        <h2>Hall Setup</h2>
+        <h2>Hall Management</h2>
+        <div class="field-group">
+          <label>
+            Current Hall
+            <select id="hallSelector"></select>
+          </label>
+        </div>
         <div class="field-group">
           <label>
             Rows
@@ -26,7 +32,11 @@
             <input id="colsInput" type="number" min="1" value="4" />
           </label>
         </div>
-        <button id="updateHallBtn" class="button">Update Hall</button>
+        <div class="split-buttons">
+          <button id="addHallBtn" class="button">Add Hall</button>
+          <button id="removeHallBtn" class="button muted">Remove Hall</button>
+        </div>
+        <button id="updateHallBtn" class="button">Update Current Hall</button>
       </section>
 
       <section class="panel">
@@ -65,9 +75,13 @@
       <header class="header-bar">
         <div>
           <h2>Seating Arrangement</h2>
-          <p>Visual dashboard for your exam hall and student roster.</p>
+          <p>Visual dashboard for your exam halls and student roster.</p>
         </div>
         <div class="summary-cards">
+          <div class="card">
+            <span id="hallCount">1</span>
+            <small>Halls</small>
+          </div>
           <div class="card">
             <span id="studentCount">0</span>
             <small>Students</small>
@@ -86,7 +100,7 @@
       <section class="grid-panel">
         <div class="grid-header">
           <div>
-            <h3>Seating Grid</h3>
+            <h3 id="currentHallTitle">Seating Grid - Hall 1</h3>
             <p>Click "Generate Seating" after setting the hall and student roster.</p>
           </div>
           <div class="grid-meta">
@@ -109,6 +123,7 @@
                 <th>#</th>
                 <th>Name</th>
                 <th>Roll Number</th>
+                <th>Hall</th>
                 <th>Seat</th>
                 <th>Action</th>
               </tr>

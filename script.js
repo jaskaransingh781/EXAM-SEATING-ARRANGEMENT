@@ -1,6 +1,9 @@
 const rowsInput = document.getElementById('rowsInput');
 const colsInput = document.getElementById('colsInput');
 const updateHallBtn = document.getElementById('updateHallBtn');
+const addHallBtn = document.getElementById('addHallBtn');
+const removeHallBtn = document.getElementById('removeHallBtn');
+const hallSelector = document.getElementById('hallSelector');
 const addStudentBtn = document.getElementById('addStudentBtn');
 const sortNameBtn = document.getElementById('sortNameBtn');
 const sortRollBtn = document.getElementById('sortRollBtn');
@@ -12,10 +15,12 @@ const seatingGrid = document.getElementById('seatingGrid');
 const studentTableBody = document.querySelector('#studentTable tbody');
 const constraintsList = document.getElementById('constraintsList');
 const messagePanel = document.getElementById('messagePanel');
+const hallCount = document.getElementById('hallCount');
 const studentCount = document.getElementById('studentCount');
 const seatCount = document.getElementById('seatCount');
 const constraintsCount = document.getElementById('constraintsCount');
 const gridDimensions = document.getElementById('gridDimensions');
+const currentHallTitle = document.getElementById('currentHallTitle');
 const constraintModal = document.getElementById('constraintModal');
 const closeConstraintModalBtn = document.getElementById('closeConstraintModalBtn');
 const cancelConstraintBtn = document.getElementById('cancelConstraintBtn');
@@ -26,21 +31,28 @@ const studentNameInput = document.getElementById('studentNameInput');
 const studentRollInput = document.getElementById('studentRollInput');
 
 const state = {
-  rows: Number(rowsInput.value) || 3,
-  cols: Number(colsInput.value) || 4,
+  currentHallId: 1,
+  halls: [
+    {
+      id: 1,
+      rows: 3,
+      cols: 4,
+      seating: Array(12).fill(null) // array of student indices or null
+    }
+  ],
   students: [
-    { name: 'JASKARAN SINGH', rollNumber: '24BET10169', seatNumber: -1 },
-    { name: 'SAKSHI', rollNumber: '24BET10158', seatNumber: -1 },
-    { name: 'RAVNEET KAUR', rollNumber: '24BET10161', seatNumber: -1 },
-    { name: 'YUVRAJ SINGH', rollNumber: '24BET10177', seatNumber: -1 },
-    { name: 'MUSKAN', rollNumber: '24BET10166', seatNumber: -1 },
-    { name: 'DEEPAK', rollNumber: '24BET10164', seatNumber: -1 },
-    { name: 'ASHUTOSH SONI', rollNumber: '24BET10155', seatNumber: -1 },
-    { name: 'AKHIL SHARMA', rollNumber: '24BET10154', seatNumber: -1 },
-    { name: 'MANJEET KUMAR', rollNumber: '24BET10181', seatNumber: -1 },
-    { name: 'DHRUV SHARMA', rollNumber: '24BET10180', seatNumber: -1 },
-    { name: 'ARSHDEEP SINGH', rollNumber: '24BET10184', seatNumber: -1 },
-    { name: 'SALONI', rollNumber: '24BET10160', seatNumber: -1 }
+    { name: 'JASKARAN SINGH', rollNumber: '24BET10169', hallId: -1, seatNumber: -1 },
+    { name: 'SAKSHI', rollNumber: '24BET10158', hallId: -1, seatNumber: -1 },
+    { name: 'RAVNEET KAUR', rollNumber: '24BET10161', hallId: -1, seatNumber: -1 },
+    { name: 'YUVRAJ SINGH', rollNumber: '24BET10177', hallId: -1, seatNumber: -1 },
+    { name: 'MUSKAN', rollNumber: '24BET10166', hallId: -1, seatNumber: -1 },
+    { name: 'DEEPAK', rollNumber: '24BET10164', hallId: -1, seatNumber: -1 },
+    { name: 'ASHUTOSH SONI', rollNumber: '24BET10155', hallId: -1, seatNumber: -1 },
+    { name: 'AKHIL SHARMA', rollNumber: '24BET10154', hallId: -1, seatNumber: -1 },
+    { name: 'MANJEET KUMAR', rollNumber: '24BET10181', hallId: -1, seatNumber: -1 },
+    { name: 'DHRUV SHARMA', rollNumber: '24BET10180', hallId: -1, seatNumber: -1 },
+    { name: 'ARSHDEEP SINGH', rollNumber: '24BET10184', hallId: -1, seatNumber: -1 },
+    { name: 'SALONI', rollNumber: '24BET10160', hallId: -1, seatNumber: -1 }
   ],
   cheatingConstraints: {
     '24BET10169': new Set(['24BET10158']),
@@ -59,11 +71,18 @@ function clearMessage() {
 }
 
 function updateSummary() {
+  hallCount.textContent = state.halls.length;
   studentCount.textContent = state.students.length;
-  seatCount.textContent = state.rows * state.cols;
+  const totalSeats = state.halls.reduce((sum, hall) => sum + (hall.rows * hall.cols), 0);
+  seatCount.textContent = totalSeats;
   const constraintPairs = Object.values(state.cheatingConstraints).reduce((total, set) => total + set.size, 0) / 2;
   constraintsCount.textContent = constraintPairs;
-  gridDimensions.textContent = `${state.rows} × ${state.cols}`;
+  
+  const currentHall = state.halls.find(h => h.id === state.currentHallId);
+  if (currentHall) {
+    gridDimensions.textContent = `${currentHall.rows} × ${currentHall.cols}`;
+    currentHallTitle.textContent = `Seating Grid - Hall ${currentHall.id}`;
+  }
 }
 
 function normalizeRoll(value) {
@@ -75,11 +94,14 @@ function renderStudentTable() {
 
   state.students.forEach((student, index) => {
     const row = document.createElement('tr');
+    const hallDisplay = student.hallId > 0 ? `Hall ${student.hallId}` : '—';
+    const seatDisplay = student.seatNumber > 0 ? student.seatNumber : '—';
     row.innerHTML = `
       <td>${index + 1}</td>
       <td>${student.name}</td>
       <td>${student.rollNumber}</td>
-      <td>${student.seatNumber > 0 ? student.seatNumber : '—'}</td>
+      <td>${hallDisplay}</td>
+      <td>${seatDisplay}</td>
       <td><button class="button muted" data-index="${index}">Remove</button></td>
     `;
     studentTableBody.appendChild(row);
@@ -134,39 +156,137 @@ function removeConstraint(roll, target) {
   showMessage(`Removed constraint between ${roll} and ${target}.`, 'success');
 }
 
-function handleConstraintListClick(event) {
-  const button = event.target.closest('button[data-roll][data-target]');
-  if (!button) return;
+function renderHallSelector() {
+  hallSelector.innerHTML = '';
+  state.halls.forEach(hall => {
+    const option = document.createElement('option');
+    option.value = hall.id;
+    option.textContent = `Hall ${hall.id} (${hall.rows}×${hall.cols})`;
+    hallSelector.appendChild(option);
+  });
+  hallSelector.value = state.currentHallId;
+}
 
-  const roll = button.dataset.roll;
-  const target = button.dataset.target;
-  removeConstraint(roll, target);
+function addHall() {
+  const newId = Math.max(...state.halls.map(h => h.id)) + 1;
+  const rows = Number(rowsInput.value) || 3;
+  const cols = Number(colsInput.value) || 4;
+  
+  state.halls.push({
+    id: newId,
+    rows: rows,
+    cols: cols,
+    seating: Array(rows * cols).fill(null)
+  });
+  
+  state.currentHallId = newId;
+  renderHallSelector();
+  renderSeatingGrid();
+  updateSummary();
+  showMessage(`Added Hall ${newId} with ${rows}×${cols} seats.`, 'success');
+}
+
+function removeHall() {
+  if (state.halls.length <= 1) {
+    showMessage('Cannot remove the last hall. At least one hall must remain.', 'warning');
+    return;
+  }
+  
+  const hallToRemove = state.halls.find(h => h.id === state.currentHallId);
+  if (!hallToRemove) return;
+  
+  // Remove students from this hall
+  hallToRemove.seating.forEach((studentIndex, seatIndex) => {
+    if (studentIndex !== null) {
+      state.students[studentIndex].hallId = -1;
+      state.students[studentIndex].seatNumber = -1;
+    }
+  });
+  
+  // Remove the hall
+  state.halls = state.halls.filter(h => h.id !== state.currentHallId);
+  
+  // Switch to the first remaining hall
+  state.currentHallId = state.halls[0].id;
+  
+  renderHallSelector();
+  renderStudentTable();
+  renderSeatingGrid();
+  updateSummary();
+  showMessage(`Removed Hall ${hallToRemove.id}.`, 'success');
+}
+
+function updateHall() {
+  const currentHall = state.halls.find(h => h.id === state.currentHallId);
+  if (!currentHall) return;
+  
+  const rows = Number(rowsInput.value);
+  const cols = Number(colsInput.value);
+  
+  if (!Number.isInteger(rows) || rows < 1 || !Number.isInteger(cols) || cols < 1) {
+    showMessage('Please enter valid positive numbers for rows and columns.', 'warning');
+    return;
+  }
+  
+  // Clear seating if dimensions changed
+  const newSize = rows * cols;
+  const oldSize = currentHall.rows * currentHall.cols;
+  
+  currentHall.rows = rows;
+  currentHall.cols = cols;
+  currentHall.seating = currentHall.seating.slice(0, newSize);
+  while (currentHall.seating.length < newSize) {
+    currentHall.seating.push(null);
+  }
+  
+  // If size changed, reset students in this hall
+  if (newSize !== oldSize) {
+    currentHall.seating.forEach((studentIndex, seatIndex) => {
+      if (studentIndex !== null) {
+        state.students[studentIndex].hallId = -1;
+        state.students[studentIndex].seatNumber = -1;
+      }
+    });
+    currentHall.seating = Array(newSize).fill(null);
+    renderStudentTable();
+  }
+  
+  renderHallSelector();
+  renderSeatingGrid();
+  updateSummary();
+  showMessage(`Updated Hall ${currentHall.id} to ${rows}×${cols}.`, 'success');
+}
+
+function handleHallSelectorChange() {
+  state.currentHallId = Number(hallSelector.value);
+  const currentHall = state.halls.find(h => h.id === state.currentHallId);
+  if (currentHall) {
+    rowsInput.value = currentHall.rows;
+    colsInput.value = currentHall.cols;
+  }
+  renderSeatingGrid();
+  updateSummary();
 }
 
 function renderSeatingGrid() {
   seatingGrid.innerHTML = '';
-  seatingGrid.style.gridTemplateColumns = `repeat(${state.cols}, minmax(140px, 1fr))`;
+  const currentHall = state.halls.find(h => h.id === state.currentHallId);
+  if (!currentHall) return;
 
-  const totalCells = state.rows * state.cols;
-  const studentBySeat = Array(totalCells).fill(null);
-  state.students.forEach((student) => {
-    if (student.seatNumber > 0) {
-      const index = student.seatNumber - 1;
-      if (index < totalCells) {
-        studentBySeat[index] = student;
-      }
-    }
-  });
+  seatingGrid.style.gridTemplateColumns = `repeat(${currentHall.cols}, minmax(140px, 1fr))`;
+
+  const totalCells = currentHall.rows * currentHall.cols;
 
   for (let i = 0; i < totalCells; i += 1) {
     const cell = document.createElement('div');
     cell.className = 'grid-cell';
 
-    if (!studentBySeat[i]) {
+    const studentIndex = currentHall.seating[i];
+    if (studentIndex === null || studentIndex === undefined) {
       cell.classList.add('empty');
       cell.innerHTML = `<strong>Seat ${i + 1}</strong><small>Empty</small>`;
     } else {
-      const student = studentBySeat[i];
+      const student = state.students[studentIndex];
       cell.innerHTML = `
         <strong>${student.name}</strong>
         <small>${student.rollNumber}</small>
@@ -195,7 +315,7 @@ function addStudent() {
     return;
   }
 
-  state.students.push({ name, rollNumber, seatNumber: -1 });
+  state.students.push({ name, rollNumber, hallId: -1, seatNumber: -1 });
   studentNameInput.value = '';
   studentRollInput.value = '';
   renderStudentTable();
@@ -215,8 +335,16 @@ function removeStudent(index) {
     }
   });
 
+  // Clear seating in all halls and adjust indices
+  state.halls.forEach(hall => {
+    hall.seating = hall.seating.map(seat => seat === index ? null : seat);
+    // Adjust indices for students after the removed one
+    hall.seating = hall.seating.map(seat => seat !== null && seat > index ? seat - 1 : seat);
+  });
+
   renderStudentTable();
   renderConstraintsList();
+  renderSeatingGrid();
   updateSummary();
   showMessage(`Removed student ${removed.name} (${removed.rollNumber}).`, 'success');
 }
@@ -228,9 +356,15 @@ function shuffleStudents() {
   }
 
   state.students.forEach((student) => {
+    student.hallId = -1;
     student.seatNumber = -1;
   });
+  // Clear all hall seating
+  state.halls.forEach(hall => {
+    hall.seating = Array(hall.rows * hall.cols).fill(null);
+  });
   renderStudentTable();
+  renderSeatingGrid();
   showMessage('Student roster shuffled randomly.', 'success');
 }
 
@@ -242,9 +376,15 @@ function sortStudentsBy(field) {
   });
 
   state.students.forEach((student) => {
+    student.hallId = -1;
     student.seatNumber = -1;
   });
+  // Clear all hall seating
+  state.halls.forEach(hall => {
+    hall.seating = Array(hall.rows * hall.cols).fill(null);
+  });
   renderStudentTable();
+  renderSeatingGrid();
   clearMessage();
 }
 
@@ -314,77 +454,100 @@ function assignSeatNumbersAndExpand() {
     return;
   }
 
+  // Reset all student assignments
   state.students.forEach((student) => {
+    student.hallId = -1;
     student.seatNumber = -1;
   });
 
-  let rows = state.rows;
-  let cols = state.cols;
-  let grid = Array.from({ length: rows }, () => Array(cols).fill(-1));
+  // Clear all hall seating
+  state.halls.forEach(hall => {
+    hall.seating = Array(hall.rows * hall.cols).fill(null);
+  });
 
-  const canPlaceAt = (studentIndex, r, c) => {
-    const currentRoll = state.students[studentIndex].rollNumber;
+  // Calculate total capacity
+  const totalCapacity = state.halls.reduce((sum, hall) => sum + hall.rows * hall.cols, 0);
+  
+  if (state.students.length > totalCapacity) {
+    showMessage(`Not enough seats! ${state.students.length} students but only ${totalCapacity} seats available.`, 'error');
+    return;
+  }
 
-    for (let dr = -1; dr <= 1; dr += 1) {
-      for (let dc = -1; dc <= 1; dc += 1) {
-        if (dr === 0 && dc === 0) continue;
-        const nr = r + dr;
-        const nc = c + dc;
-        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
-        const neighborIndex = grid[nr][nc];
-        if (neighborIndex === -1) continue;
-        const neighborRoll = state.students[neighborIndex].rollNumber;
-        const blocked = state.cheatingConstraints[currentRoll] && state.cheatingConstraints[currentRoll].has(neighborRoll);
-        if (blocked) {
-          return false;
-        }
-      }
-    }
-    return true;
-  };
+  // Sort halls by capacity for better distribution
+  const sortedHalls = [...state.halls].sort((a, b) => (b.rows * b.cols) - (a.rows * a.cols));
 
-  for (let i = 0; i < state.students.length; i += 1) {
-    let placed = false;
-    let attempts = 0;
+  let studentIndex = 0;
+  let hallIndex = 0;
 
-    while (!placed && attempts < 1000) {
-      for (let r = 0; r < rows && !placed; r += 1) {
-        for (let c = 0; c < cols && !placed; c += 1) {
-          if (grid[r][c] !== -1) continue;
-          if (canPlaceAt(i, r, c)) {
-            grid[r][c] = i;
-            state.students[i].seatNumber = r * cols + c + 1;
-            placed = true;
+  while (studentIndex < state.students.length) {
+    const hall = sortedHalls[hallIndex % sortedHalls.length];
+    const hallSeating = hall.seating;
+    const rows = hall.rows;
+    const cols = hall.cols;
+
+    const canPlaceAt = (studentIdx, r, c) => {
+      const currentRoll = state.students[studentIdx].rollNumber;
+
+      for (let dr = -1; dr <= 1; dr += 1) {
+        for (let dc = -1; dc <= 1; dc += 1) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+          const neighborIndex = hallSeating[nr * cols + nc];
+          if (neighborIndex === null) continue;
+          const neighborRoll = state.students[neighborIndex].rollNumber;
+          const blocked = state.cheatingConstraints[currentRoll] && state.cheatingConstraints[currentRoll].has(neighborRoll);
+          if (blocked) {
+            return false;
           }
         }
       }
+      return true;
+    };
 
-      if (!placed) {
-        rows += 1;
-        grid.push(Array(cols).fill(-1));
+    let placed = false;
+    let attempts = 0;
+
+    while (!placed && attempts < 100) {
+      for (let r = 0; r < rows && !placed; r += 1) {
+        for (let c = 0; c < cols && !placed; c += 1) {
+          const seatIndex = r * cols + c;
+          if (hallSeating[seatIndex] !== null) continue;
+          if (canPlaceAt(studentIndex, r, c)) {
+            hallSeating[seatIndex] = studentIndex;
+            state.students[studentIndex].hallId = hall.id;
+            state.students[studentIndex].seatNumber = seatIndex + 1;
+            placed = true;
+          }
+        }
       }
       attempts += 1;
     }
 
     if (!placed) {
-      showMessage(`Unable to place student ${state.students[i].rollNumber} due to conflicting constraints.`, 'error');
+      showMessage(`Unable to place student ${state.students[studentIndex].rollNumber} in any hall due to constraints.`, 'error');
       return;
     }
+
+    studentIndex += 1;
+    hallIndex += 1;
   }
 
-  state.rows = rows;
-  state.cols = cols;
-  updateSummary();
   renderStudentTable();
   renderSeatingGrid();
-  showMessage('Seating arrangement generated successfully.', 'success');
+  updateSummary();
+  showMessage('Seating arrangement generated successfully across all halls.', 'success');
 }
 
 function resetLayout() {
-  state.rows = Number(rowsInput.value) || state.rows;
-  state.cols = Number(colsInput.value) || state.cols;
   state.students.forEach((student) => {
+    student.hallId = -1;
     student.seatNumber = -1;
+  });
+  // Clear all hall seating
+  state.halls.forEach(hall => {
+    hall.seating = Array(hall.rows * hall.cols).fill(null);
   });
   renderSeatingGrid();
   renderStudentTable();
@@ -398,6 +561,7 @@ function handleTableActions(event) {
 }
 
 function initialize() {
+  renderHallSelector();
   renderStudentTable();
   renderConstraintsList();
   renderSeatingGrid();
@@ -405,6 +569,9 @@ function initialize() {
   clearMessage();
 
   updateHallBtn.addEventListener('click', updateHall);
+  addHallBtn.addEventListener('click', addHall);
+  removeHallBtn.addEventListener('click', removeHall);
+  hallSelector.addEventListener('change', handleHallSelectorChange);
   addStudentBtn.addEventListener('click', addStudent);
   sortNameBtn.addEventListener('click', () => sortStudentsBy('name'));
   sortRollBtn.addEventListener('click', () => sortStudentsBy('rollNumber'));
