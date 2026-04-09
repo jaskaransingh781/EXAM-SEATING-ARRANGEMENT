@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exam Seating Arrangement System</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Exam Seating</h1>
+        <p>Arrangement Dashboard</p>
+      </div>
+
+      <section class="panel">
+        <h2>Hall Setup</h2>
+        <div class="field-group">
+          <label>
+            Rows
+            <input id="rowsInput" type="number" min="1" value="3" />
+          </label>
+          <label>
+            Columns
+            <input id="colsInput" type="number" min="1" value="4" />
+          </label>
+        </div>
+        <button id="updateHallBtn" class="button">Update Hall</button>
+      </section>
+
+      <section class="panel">
+        <h2>Add Student</h2>
+        <label>
+          Name
+          <input id="studentNameInput" type="text" placeholder="Full name" />
+        </label>
+        <label>
+          Roll Number
+          <input id="studentRollInput" type="text" placeholder="UID" />
+        </label>
+        <button id="addStudentBtn" class="button primary">Add Student</button>
+      </section>
+
+      <section class="panel split-buttons">
+        <h2>Sorting</h2>
+        <button id="sortNameBtn" class="button">Sort by Name</button>
+        <button id="sortRollBtn" class="button">Sort by Roll</button>
+        <button id="shuffleBtn" class="button">Shuffle</button>
+      </section>
+
+      <section class="panel">
+        <h2>Anti-Cheating</h2>
+        <button id="openConstraintModalBtn" class="button">Add Constraint</button>
+        <div class="hint">Prevent adjacent seating horizontally, vertically, or diagonally.</div>
+      </section>
+
+      <section class="panel actions-panel">
+        <button id="generateBtn" class="button primary">Generate Seating</button>
+        <button id="resetBtn" class="button muted">Reset Layout</button>
+      </section>
+    </aside>
+
+    <main class="main-content">
+      <header class="header-bar">
+        <div>
+          <h2>Seating Arrangement</h2>
+          <p>Visual dashboard for your exam hall and student roster.</p>
+        </div>
+        <div class="summary-cards">
+          <div class="card">
+            <span id="studentCount">0</span>
+            <small>Students</small>
+          </div>
+          <div class="card">
+            <span id="seatCount">12</span>
+            <small>Seats</small>
+          </div>
+          <div class="card">
+            <span id="constraintsCount">0</span>
+            <small>Constraints</small>
+          </div>
+        </div>
+      </header>
+
+      <section class="grid-panel">
+        <div class="grid-header">
+          <div>
+            <h3>Seating Grid</h3>
+            <p>Click "Generate Seating" after setting the hall and student roster.</p>
+          </div>
+          <div class="grid-meta">
+            <span id="gridDimensions">3 × 4</span>
+          </div>
+        </div>
+
+        <div id="seatingGrid" class="seating-grid"></div>
+      </section>
+
+      <section class="table-panel">
+        <div class="table-title">
+          <h3>Student Roster</h3>
+          <span id="rosterSubtitle">Manage students and delete entries as needed.</span>
+        </div>
+        <div class="table-wrap">
+          <table id="studentTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Roll Number</th>
+                <th>Seat</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="constraints-panel">
+        <h3>Cheating Constraints</h3>
+        <div id="constraintsList" class="constraints-list"></div>
+      </section>
+
+      <section id="messagePanel" class="message-panel"></section>
+    </main>
+  </div>
+
+  <div class="modal-overlay hidden" id="constraintModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h3>Add Anti-Cheating Constraint</h3>
+          <p>Pair students who cannot sit adjacent in any direction.</p>
+        </div>
+        <button class="close-btn" id="closeConstraintModalBtn">×</button>
+      </div>
+
+      <label>
+        Roll Number 1
+        <input id="constraintRoll1" type="text" placeholder="First roll number" />
+      </label>
+      <label>
+        Roll Number 2
+        <input id="constraintRoll2" type="text" placeholder="Second roll number" />
+      </label>
+
+      <div class="modal-actions">
+        <button id="saveConstraintBtn" class="button primary">Save Constraint</button>
+        <button id="cancelConstraintBtn" class="button muted">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
